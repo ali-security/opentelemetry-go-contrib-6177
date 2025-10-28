@@ -439,11 +439,23 @@ func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor {
 // spanInfo returns a span name and all appropriate attributes from the gRPC
 // method and peer address.
 func spanInfo(fullMethod, peerAddress string) (string, []attribute.KeyValue) {
-	attrs := []attribute.KeyValue{semconv.RPCSystemGRPC}
-	name, mAttrs := parseFullMethod(fullMethod)
-	attrs = append(attrs, mAttrs...)
-	attrs = append(attrs, peerAttr(peerAddress)...)
+	name, attrs, _ := telemetryAttributes(fullMethod, peerAddress)
 	return name, attrs
+}
+
+// telemetryAttributes returns a span name and span and metric attributes from
+// the gRPC method and peer address. Peer address attributes are excluded from
+// metric attributes to prevent unbounded cardinality.
+func telemetryAttributes(fullMethod, peerAddress string) (string, []attribute.KeyValue, []attribute.KeyValue) {
+	name, methodAttrs := parseFullMethod(fullMethod)
+	peerAttrs := peerAttr(peerAddress)
+
+	attrs := make([]attribute.KeyValue, 0, 1+len(methodAttrs)+len(peerAttrs))
+	attrs = append(attrs, semconv.RPCSystemGRPC)
+	attrs = append(attrs, methodAttrs...)
+	metricAttrs := attrs[:1+len(methodAttrs)]
+	attrs = append(attrs, peerAttrs...)
+	return name, attrs, metricAttrs
 }
 
 // peerAttr returns attributes about the peer address.
