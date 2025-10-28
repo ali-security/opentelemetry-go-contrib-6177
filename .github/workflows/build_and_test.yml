@@ -65,5 +65,5 @@ jobs:
       - name: store test output
         uses: actions/upload-artifact@v4
         with:
-            name: opentelemetry-go-contrib-test-output
+            name: opentelemetry-go-contrib-test-output-${{ matrix.target }}
             path: ${{ env.TEST_RESULTS }}
